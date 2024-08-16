@@ -19,5 +19,25 @@ namespace API.Utils
             }
             return idBuilder.ToString();
         }
+
+        public static List<string> GetAllFiles(string folderPath)
+        {
+            var response = new List<string>();
+            var allFilesAndFolders = Directory.GetFileSystemEntries(folderPath);
+            foreach(var file in allFilesAndFolders)
+            {
+                if (Directory.Exists(file))
+                {
+                    response.AddRange(GetAllFiles(file));
+                }
+                else
+                {
+                    response.Add(file);
+                }
+            }
+
+            return response;
+
+        }
     }
 }

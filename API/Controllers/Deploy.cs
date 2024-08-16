@@ -1,11 +1,11 @@
 
 using API.DTO;
+using API.Utils;
 using dotenv.net;
 using LibGit2Sharp;
 using LibGit2Sharp.Handlers;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Configuration;
-
 namespace API.Controllers
 {
     [ApiController]
@@ -13,10 +13,12 @@ namespace API.Controllers
     public class Deploy : ControllerBase
     {
         private IConfiguration _configuration;
+        private S3Uploader _uploader;
 
         public Deploy(IConfiguration configuration)
         {
             _configuration = configuration;
+            _uploader = new S3Uploader(_configuration);
         }
         [HttpPost]
         public async Task<IActionResult> DeployRep([FromBody] DeployRequest request){
@@ -47,8 +49,18 @@ namespace API.Controllers
                 await Task.Run(() =>
                 {
                     Repository.Clone(repoUrl, output , cloneOpts);
+                   
                 });
+                List<string> files = Utils.Utils.GetAllFiles(Path.Combine(Directory.GetCurrentDirectory(), "output", id));
+
                
+                foreach (var file in files)
+                {
+                    var keyword = "output";
+                    int startIndex = file.IndexOf(keyword)+7;
+                    await _uploader.UploadFileAsync(file.Substring(startIndex).Replace("\\", "/"), file);
+                }
+
                 return Ok(new {id = id});
             }
             catch (Exception ex)
